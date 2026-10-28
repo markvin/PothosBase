@@ -118,4 +118,13 @@ if (POTHOS_BASE_BUILD_TESTS)
     set_tests_properties(base.selftests PROPERTIES
         DEPENDS base.modules
         TIMEOUT ${POTHOS_BASE_SELFTEST_TIMEOUT})
+
+    #the environment of the stage prefix for a developer shell (debugger)
+    if (APPLE)
+        set(library_path_var DYLD_LIBRARY_PATH)
+    else ()
+        set(library_path_var LD_LIBRARY_PATH)
+    endif ()
+    configure_file(cmake/pothos-env.sh.in ${PROJECT_BINARY_DIR}/pothos-env.sh @ONLY)
+    configure_file(cmake/pothos-env.ps1.in ${PROJECT_BINARY_DIR}/pothos-env.ps1 @ONLY)
 endif ()

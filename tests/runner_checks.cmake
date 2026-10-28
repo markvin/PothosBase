@@ -6,6 +6,8 @@
 # Optional: -DBINDIR=<bin dir> (default bin) -DLIBDIR=<lib dir> (default lib)
 #           -DQUICK_TEST=<one self-test path> for the cases that need only
 #           one test (default /blocks/tests/test_copier_domain_crossing)
+#           -DENV_SCRIPT=<build/pothos-env.sh> for the env case (not on
+#           Windows; skipped without it)
 #
 # Cases:
 #  - good: MODE=modules and MODE=selftests pass on the stage
@@ -16,6 +18,8 @@
 #  - foreign_module: pothos_base_check_module_paths() stops on a module
 #    path outside the prefix, and passes when all are inside
 #  - no_toolkit_tests: a toolkit without self-tests fails MODE=selftests
+#  - env: after "source pothos-env.sh", PothosUtil runs a self-test of the
+#    stage, and POTHOS_PLUGIN_PATH is not set
 ########################################################################
 cmake_minimum_required(VERSION 3.25)
 foreach(var STAGE WORK CORE_DIR TOOLKITS)
@@ -135,5 +139,21 @@ endforeach()
 #no_toolkit_tests
 run_script("${STAGE}" "${TOOLKITS};nosuch" selftests)
 expect(no_toolkit_tests FALSE "no self-tests under /nosuch/tests")
+
+#env: a developer shell (the user dirs of the check, not the real home)
+if (ENV_SCRIPT AND NOT WIN32)
+    set(ENV{XDG_DATA_HOME} "${WORK}/env-home/data")
+    set(ENV{XDG_CONFIG_HOME} "${WORK}/env-home/config")
+    set(ENV{POTHOS_PLUGIN_PATH} "${WORK}/foreign-plugins")
+    execute_process(
+        COMMAND bash -c "source '${ENV_SCRIPT}' && echo \"PLUGIN_PATH=[$POTHOS_PLUGIN_PATH]\" && PothosUtil --self-test1 '${QUICK_TEST}'"
+        RESULT_VARIABLE run_rc OUTPUT_VARIABLE out ERROR_VARIABLE err)
+    unset(ENV{POTHOS_PLUGIN_PATH})
+    string(REGEX REPLACE "[ \t\r\n]+" " " run_out "${out} ${err}")
+    expect(env_plugin_path TRUE "PLUGIN_PATH=[]")
+    expect(env_self_test TRUE "success!")
+else ()
+    message(STATUS "runner_checks: env skipped (no ENV_SCRIPT, or Windows)")
+endif ()
 
 message(STATUS "runner_checks: all cases passed")

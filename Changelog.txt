@@ -1,0 +1,12 @@
+This is the changelog file for PothosBase.
+
+Release 0.1.0 (pending)
+==========================
+
+- First version of the aggregate build: the core and blocks as
+  submodules on their pothos2 branches, in one CMake tree.
+- POTHOS_BASE_<NAME>_DIR builds a local clone in place of a submodule.
+- Tests: base.stage, base.modules (every module loads) and
+  base.selftests (all self-tests from one stage prefix).
+- build/pothos-env.sh and pothos-env.ps1 give the environment of the
+  stage prefix for a debugger.
