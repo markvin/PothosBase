@@ -14,6 +14,7 @@ the toolkit tells. PothosBase does not replace that build.
 |---|---|---|
 | `core/` | https://github.com/markvin/PothosCore | `pothos2` |
 | `blocks/` | https://github.com/markvin/PothosBlocks | `pothos2` |
+| `comms/` | https://github.com/markvin/PothosComms | `pothos2` |
 
 The submodule commits in `main` are a set that builds and passes the
 tests. CI checks this for each change.
@@ -54,7 +55,8 @@ cmake --build build
 Options:
 
 - `POTHOS_BASE_WITH_<TOOLKIT>` (default ON): build the toolkit, for
-  example `POTHOS_BASE_WITH_BLOCKS`.
+  example `POTHOS_BASE_WITH_BLOCKS`. The comms tests need blocks: with
+  the tests on, comms without blocks is a configure error.
 - `POTHOS_BASE_<NAME>_DIR`: the source directory of a repository
   (default: its submodule). Refer to "Local clones".
 - `POTHOS_BASE_WARNINGS_AS_ERRORS` (default OFF): treat compiler warnings
