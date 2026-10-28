@@ -10,7 +10,8 @@
 #           a local clone (skipped without it)
 #
 # Cases:
-#  - default: the submodules; no warning about local clones
+#  - default: the submodules; no warning about local clones, no CMake
+#    policy warning
 #  - missing: a clone without --recursive (empty submodule dirs) stops with
 #    the git submodule command
 #  - bad_dir: a source dir option to a dir that does not exist stops with
@@ -96,6 +97,7 @@ endfunction()
 configure(default "${SRC}" "${WORK}/default" FRESH)
 expect_success(default)
 expect_no_text(default "${override_warning}")
+expect_no_text(default "CMake Warning (policy)")
 message(STATUS "configure_checks: default OK")
 
 #missing: the top-level files of the source with empty submodule dirs
