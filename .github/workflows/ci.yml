@@ -1,0 +1,100 @@
+name: CI
+
+# The aggregate build is an integration check on Linux. The CI of each
+# repository (core and toolkits) covers macOS and Windows.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # the dependencies from Conan 2
+  linux:
+    name: linux (Conan, GCC)
+    runs-on: ubuntu-24.04
+    env:
+      # the nested configures of tests/configure_checks.cmake use them too
+      CC: gcc-14
+      CXX: g++-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: No network access in the build
+        shell: bash
+        run: |
+          if grep -rnE 'file\s*\(\s*DOWNLOAD|FetchContent|ExternalProject' CMakeLists.txt cmake tests; then
+            echo "build scripts must not download anything"; exit 1
+          fi
+
+      - name: Conan versions are the same as in the submodules
+        run: cmake -DSRC=$PWD -P tests/check_conan_versions.cmake
+
+      - name: Submodule pointers are on their branches
+        run: tests/check_submodule_pointers.sh
+
+      - name: Install Ninja
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+      - name: Dependencies (Conan)
+        run: |
+          pipx install "conan>=2,<3"
+          conan profile detect --force
+          conan install . --output-folder=build/conan \
+            -s build_type=Debug -s compiler.cppstd=23 --build=missing \
+            -c tools.cmake.cmaketoolchain:generator=Ninja
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_TOOLCHAIN_FILE=build/conan/conan_toolchain.cmake
+          -DPOTHOS_BASE_WARNINGS_AS_ERRORS=ON
+
+      # keep going after the first error to report all of them in one run
+      - name: Build
+        run: cmake --build build -- -k 0
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -V
+
+      - name: Configure checks
+        run: >
+          cmake -DSRC=$PWD -DWORK=$PWD/build/configure-checks
+          -DTOOLCHAIN=$PWD/build/conan/conan_toolchain.cmake -DBUILD_TYPE=Debug
+          -P tests/configure_checks.cmake
+
+  # the dependencies from the system packages, without Conan
+  linux-system:
+    name: linux-system (Arch packages)
+    runs-on: ubuntu-24.04
+    container:
+      image: archlinux:latest
+      #an init process as PID 1 reaps orphans: the daemon tests of PothosUtil
+      #check that the daemon is gone, and a zombie still answers kill(pid, 0)
+      options: --init
+    steps:
+      - name: Install the toolchain and the dependencies
+        run: pacman -Syu --noconfirm base-devel cmake ninja git asio nlohmann-json xsimd
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Debug
+          -DPOTHOS_BASE_WARNINGS_AS_ERRORS=ON
+
+      - name: Build
+        run: cmake --build build -- -k 0
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -V
+
+      - name: Configure checks
+        run: cmake -DSRC=$PWD -DWORK=$PWD/build/configure-checks -P tests/configure_checks.cmake
