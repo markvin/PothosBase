@@ -175,12 +175,14 @@ if (BUILD_DIR)
     endif ()
     message(STATUS "runner_checks: stage_clean_removed OK")
 
-    #a dir without the marker is not removed
+    #a dir without the marker, outside the build dir, is not removed. The
+    #script may remove any dir in its BUILD_DIR, and WORK can be in the real
+    #build dir (CI): thus this case gives a build dir of its own
     set(foreign_prefix "${WORK}/not-a-stage")
     file(REMOVE_RECURSE "${foreign_prefix}")
     file(WRITE "${foreign_prefix}/keep.txt" "keep")
     execute_process(
-        COMMAND ${CMAKE_COMMAND} "-DBUILD_DIR=${BUILD_DIR}" "-DPREFIX=${foreign_prefix}" -P "${stage_script}"
+        COMMAND ${CMAKE_COMMAND} "-DBUILD_DIR=${WORK}/other-build" "-DPREFIX=${foreign_prefix}" -P "${stage_script}"
         RESULT_VARIABLE run_rc OUTPUT_VARIABLE out ERROR_VARIABLE err)
     string(REGEX REPLACE "[ \t\r\n]+" " " run_out "${out} ${err}")
     expect(stage_clean_refuses FALSE "not a stage prefix")
