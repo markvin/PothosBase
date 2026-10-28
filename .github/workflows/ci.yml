@@ -67,6 +67,14 @@ jobs:
           -DTOOLCHAIN=$PWD/build/conan/conan_toolchain.cmake -DBUILD_TYPE=Debug
           -P tests/configure_checks.cmake
 
+      # the checks of the test runner on the stage prefix of the Test step
+      - name: Runner checks
+        run: >
+          cmake -DSTAGE=$PWD/build/stage -DWORK=$PWD/build/runner-checks
+          -DCORE_DIR=$PWD/core -DTOOLKITS=blocks -DBUILD_DIR=$PWD/build
+          -DENV_SCRIPT=$PWD/build/pothos-env.sh
+          -P tests/runner_checks.cmake
+
   # the dependencies from the system packages, without Conan
   linux-system:
     name: linux-system (Arch packages)

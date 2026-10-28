@@ -20,6 +20,8 @@
 #  - override_reset: the same build dir with -U of the option goes back to
 #    the submodule, and the warning goes away
 #  - without_blocks: POTHOS_BASE_WITH_BLOCKS=OFF configures
+#  - empty_core_dir: an empty POTHOS_BASE_CORE_DIR means the submodule,
+#    also for the tests (CORE_DIR of the test commands)
 ########################################################################
 cmake_minimum_required(VERSION 3.25)
 foreach(var SRC WORK)
@@ -137,5 +139,12 @@ endif ()
 configure(without_blocks "${SRC}" "${WORK}/without_blocks" FRESH "-DPOTHOS_BASE_WITH_BLOCKS=OFF")
 expect_success(without_blocks)
 message(STATUS "configure_checks: without_blocks OK")
+
+#empty_core_dir
+configure(empty_core_dir "${SRC}" "${WORK}/empty_core_dir" FRESH "-DPOTHOS_BASE_CORE_DIR=")
+expect_success(empty_core_dir)
+file(READ "${WORK}/empty_core_dir/CTestTestfile.cmake" case_out)
+expect_text(empty_core_dir "-DCORE_DIR=${SRC}/core\"")
+message(STATUS "configure_checks: empty_core_dir OK")
 
 message(STATUS "configure_checks: all cases passed")

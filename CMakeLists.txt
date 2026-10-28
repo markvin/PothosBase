@@ -64,6 +64,9 @@ function(pothos_base_add name)
         set(pothos_base_local_clones ${pothos_base_local_clones} ${name} PARENT_SCOPE)
     endif ()
 
+    #the resolved dir for the tests (an empty option means the submodule)
+    set(pothos_base_${name}_dir "${dir}" PARENT_SCOPE)
+
     #the source can be outside this tree: always give the binary dir
     add_subdirectory("${dir}" "${name}")
 endfunction()
@@ -96,10 +99,14 @@ if (POTHOS_BASE_BUILD_TESTS)
     enable_testing()
     set(POTHOS_BASE_SELFTEST_TIMEOUT 1800 CACHE STRING "Timeout in seconds for the self-tests")
     set(stage_dir ${PROJECT_BINARY_DIR}/stage)
-    cmake_path(ABSOLUTE_PATH POTHOS_BASE_CORE_DIR NORMALIZE OUTPUT_VARIABLE core_dir)
-
+    #the stage prefix starts empty: modules of an earlier install (a toolkit
+    #that is now off, an old ABI dir) must not get into the tests
     add_test(NAME base.stage
-        COMMAND ${CMAKE_COMMAND} --install ${PROJECT_BINARY_DIR} --prefix ${stage_dir} --config $<CONFIG>)
+        COMMAND ${CMAKE_COMMAND}
+            -DBUILD_DIR=${PROJECT_BINARY_DIR}
+            -DPREFIX=${stage_dir}
+            -DCONFIG=$<CONFIG>
+            -P ${PROJECT_SOURCE_DIR}/cmake/PothosBaseStage.cmake)
     set_tests_properties(base.stage PROPERTIES FIXTURES_SETUP base_stage)
 
     foreach(mode modules selftests)
@@ -109,7 +116,7 @@ if (POTHOS_BASE_BUILD_TESTS)
                 -DTEST_HOME_DIR=${PROJECT_BINARY_DIR}/test-home
                 -DBINDIR=${CMAKE_INSTALL_BINDIR}
                 -DLIBDIR=${CMAKE_INSTALL_LIBDIR}
-                -DCORE_DIR=${core_dir}
+                -DCORE_DIR=${pothos_base_core_dir}
                 "-DTOOLKITS=${POTHOS_BASE_TOOLKITS}"
                 -DMODE=${mode}
                 -P ${PROJECT_SOURCE_DIR}/cmake/PothosBaseSelfTests.cmake)

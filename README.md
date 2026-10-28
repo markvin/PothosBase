@@ -150,8 +150,10 @@ Add a toolkit after its port to the pothos2 core:
    the toolkits that its tests need.
 3. Add its `warnings as errors` option to the forward list in
    `CMakeLists.txt`.
-4. Add its Conan requirements to `conanfile.txt` (the same versions).
-5. Run the build, `ctest` and `tests/configure_checks.cmake`.
+4. Add its name to `-DTOOLKITS=` of the "Runner checks" step in
+   `.github/workflows/ci.yml`.
+5. Add its Conan requirements to `conanfile.txt` (the same versions).
+6. Run the build, `ctest` and `tests/configure_checks.cmake`.
 
 ## License
 

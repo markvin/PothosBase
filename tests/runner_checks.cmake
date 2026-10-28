@@ -3,6 +3,8 @@
 #
 # Required: -DSTAGE=<staged prefix of a PothosBase build> -DWORK=<scratch dir>
 #           -DCORE_DIR=<core source> -DTOOLKITS=<;-list of toolkit names>
+#           -DBUILD_DIR=<the PothosBase build dir of the stage> for stage_clean
+#           (skipped without it)
 # Optional: -DBINDIR=<bin dir> (default bin) -DLIBDIR=<lib dir> (default lib)
 #           -DQUICK_TEST=<one self-test path> for the cases that need only
 #           one test (default /blocks/tests/test_copier_domain_crossing)
@@ -18,6 +20,10 @@
 #  - foreign_module: pothos_base_check_module_paths() stops on a module
 #    path outside the prefix, and passes when all are inside
 #  - no_toolkit_tests: a toolkit without self-tests fails MODE=selftests
+#  - relative_prefix: a relative PREFIX (from the current dir) works
+#  - stage_clean: cmake/PothosBaseStage.cmake removes an old stage prefix
+#    (it has the marker file) before the install, and does not remove a
+#    dir without the marker
 #  - env: after "source pothos-env.sh", PothosUtil runs a self-test of the
 #    stage, and POTHOS_PLUGIN_PATH is not set
 ########################################################################
@@ -95,10 +101,9 @@ list(GET TOOLKITS 0 first_toolkit)
 copy_stage("${WORK}/stage-broken")
 file(GLOB toolkit_dirs "${WORK}/stage-broken/${LIBDIR}/Pothos/modules*/${first_toolkit}")
 list(GET toolkit_dirs 0 toolkit_dir)
+#the module suffix of the core (MODULE_EXT): .so also on macOS
 if (WIN32)
     set(module_suffix .dll)
-elseif (APPLE)
-    set(module_suffix .dylib)
 else ()
     set(module_suffix .so)
 endif ()
@@ -139,6 +144,52 @@ endforeach()
 #no_toolkit_tests
 run_script("${STAGE}" "${TOOLKITS};nosuch" selftests)
 expect(no_toolkit_tests FALSE "no self-tests under /nosuch/tests")
+
+#relative_prefix: the same stage as a relative path from its parent dir
+cmake_path(GET STAGE PARENT_PATH stage_parent)
+cmake_path(GET STAGE FILENAME stage_name)
+set(test_arg "-DTEST_PATH=${QUICK_TEST}")
+execute_process(
+    COMMAND ${CMAKE_COMMAND} "-DPREFIX=${stage_name}" "-DTEST_HOME_DIR=${WORK}/test-home"
+        "-DBINDIR=${BINDIR}" "-DLIBDIR=${LIBDIR}" "-DCORE_DIR=${CORE_DIR}"
+        "-DTOOLKITS=${TOOLKITS}" -DMODE=selftests "${test_arg}" -P "${script}"
+    WORKING_DIRECTORY "${stage_parent}"
+    RESULT_VARIABLE run_rc OUTPUT_VARIABLE out ERROR_VARIABLE err)
+string(REGEX REPLACE "[ \t\r\n]+" " " run_out "${out} ${err}")
+expect(relative_prefix TRUE "success!")
+
+#stage_clean: an old stage prefix with a module that the build does not have
+if (BUILD_DIR)
+    set(stage_script "${CMAKE_CURRENT_LIST_DIR}/../cmake/PothosBaseStage.cmake")
+    set(clean_prefix "${WORK}/stage-clean")
+    file(REMOVE_RECURSE "${clean_prefix}")
+    file(WRITE "${clean_prefix}/${LIBDIR}/Pothos/modules0.0-0/old/libOld${module_suffix}" "old")
+    file(WRITE "${clean_prefix}/.pothos-base-stage" "")
+    execute_process(
+        COMMAND ${CMAKE_COMMAND} "-DBUILD_DIR=${BUILD_DIR}" "-DPREFIX=${clean_prefix}" -P "${stage_script}"
+        RESULT_VARIABLE run_rc OUTPUT_VARIABLE out ERROR_VARIABLE err)
+    string(REGEX REPLACE "[ \t\r\n]+" " " run_out "${out} ${err}")
+    expect(stage_clean_install TRUE "")
+    if (EXISTS "${clean_prefix}/${LIBDIR}/Pothos/modules0.0-0" OR NOT EXISTS "${clean_prefix}/${BINDIR}")
+        message(FATAL_ERROR "runner_checks: case stage_clean: the old module stays, or the install is missing")
+    endif ()
+    message(STATUS "runner_checks: stage_clean_removed OK")
+
+    #a dir without the marker is not removed
+    set(foreign_prefix "${WORK}/not-a-stage")
+    file(REMOVE_RECURSE "${foreign_prefix}")
+    file(WRITE "${foreign_prefix}/keep.txt" "keep")
+    execute_process(
+        COMMAND ${CMAKE_COMMAND} "-DBUILD_DIR=${BUILD_DIR}" "-DPREFIX=${foreign_prefix}" -P "${stage_script}"
+        RESULT_VARIABLE run_rc OUTPUT_VARIABLE out ERROR_VARIABLE err)
+    string(REGEX REPLACE "[ \t\r\n]+" " " run_out "${out} ${err}")
+    expect(stage_clean_refuses FALSE "not a stage prefix")
+    if (NOT EXISTS "${foreign_prefix}/keep.txt")
+        message(FATAL_ERROR "runner_checks: case stage_clean_refuses: the dir was removed")
+    endif ()
+else ()
+    message(STATUS "runner_checks: stage_clean skipped (no BUILD_DIR)")
+endif ()
 
 #env: a developer shell (the user dirs of the check, not the real home)
 if (ENV_SCRIPT AND NOT WIN32)

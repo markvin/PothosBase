@@ -23,6 +23,12 @@ foreach(var PREFIX TEST_HOME_DIR BINDIR LIBDIR CORE_DIR TOOLKITS MODE)
     endif ()
 endforeach()
 
+#relative paths are relative to the current dir (cmake -P): the loader
+#prints absolute module paths, so the prefix must be absolute too
+foreach(var PREFIX TEST_HOME_DIR CORE_DIR)
+    cmake_path(ABSOLUTE_PATH ${var} BASE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}" NORMALIZE)
+endforeach()
+
 include(${CORE_DIR}/cmake/PothosTestEnv.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/PothosBaseModulePaths.cmake)
 pothos_test_env("${PREFIX}" "${TEST_HOME_DIR}" "${BINDIR}" "${LIBDIR}")
@@ -30,11 +36,10 @@ pothos_test_env("${PREFIX}" "${TEST_HOME_DIR}" "${BINDIR}" "${LIBDIR}")
 unset(ENV{POTHOS_PLUGIN_PATH})
 
 set(util "${PREFIX}/${BINDIR}/PothosUtil")
+#the module suffix of the core (MODULE_EXT): .so also on macOS
 if (WIN32)
     set(util "${PREFIX}/${BINDIR}/PothosUtil.exe")
     set(module_glob "*.dll")
-elseif (APPLE)
-    set(module_glob "*.dylib")
 else ()
     set(module_glob "*.so")
 endif ()
@@ -76,10 +81,11 @@ if (TEST_PATH)
 else ()
     set(args --self-tests)
 endif ()
-#the output goes to the log and is kept for the checks below
+#the output goes to the log at once (a test that hangs until the timeout
+#is then visible) and is also kept for the checks below
 execute_process(COMMAND "${util}" ${args}
-    RESULT_VARIABLE rc OUTPUT_VARIABLE out ERROR_VARIABLE err)
-message("${out}${err}")
+    RESULT_VARIABLE rc OUTPUT_VARIABLE out ERROR_VARIABLE err
+    ECHO_OUTPUT_VARIABLE ECHO_ERROR_VARIABLE)
 if (NOT rc EQUAL 0)
     message(FATAL_ERROR "PothosUtil ${args} failed: ${rc}")
 endif ()
