@@ -87,3 +87,35 @@ if (pothos_base_local_clones)
     message(WARNING "PothosBase: this build uses local clones (${clones_text}): "
         "it is not the fixed set of the submodule pointers.")
 endif ()
+
+########################################################################
+# Tests: install the whole tree into one stage prefix, check that every
+# module loads, then run all self-tests (core and toolkits) from it
+########################################################################
+if (POTHOS_BASE_BUILD_TESTS)
+    enable_testing()
+    set(POTHOS_BASE_SELFTEST_TIMEOUT 1800 CACHE STRING "Timeout in seconds for the self-tests")
+    set(stage_dir ${PROJECT_BINARY_DIR}/stage)
+    cmake_path(ABSOLUTE_PATH POTHOS_BASE_CORE_DIR NORMALIZE OUTPUT_VARIABLE core_dir)
+
+    add_test(NAME base.stage
+        COMMAND ${CMAKE_COMMAND} --install ${PROJECT_BINARY_DIR} --prefix ${stage_dir} --config $<CONFIG>)
+    set_tests_properties(base.stage PROPERTIES FIXTURES_SETUP base_stage)
+
+    foreach(mode modules selftests)
+        add_test(NAME base.${mode}
+            COMMAND ${CMAKE_COMMAND}
+                -DPREFIX=${stage_dir}
+                -DTEST_HOME_DIR=${PROJECT_BINARY_DIR}/test-home
+                -DBINDIR=${CMAKE_INSTALL_BINDIR}
+                -DLIBDIR=${CMAKE_INSTALL_LIBDIR}
+                -DCORE_DIR=${core_dir}
+                "-DTOOLKITS=${POTHOS_BASE_TOOLKITS}"
+                -DMODE=${mode}
+                -P ${PROJECT_SOURCE_DIR}/cmake/PothosBaseSelfTests.cmake)
+        set_tests_properties(base.${mode} PROPERTIES FIXTURES_REQUIRED base_stage)
+    endforeach()
+    set_tests_properties(base.selftests PROPERTIES
+        DEPENDS base.modules
+        TIMEOUT ${POTHOS_BASE_SELFTEST_TIMEOUT})
+endif ()
