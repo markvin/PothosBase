@@ -1,0 +1,8 @@
+[submodule "core"]
+	path = core
+	url = https://github.com/markvin/PothosCore.git
+	branch = pothos2
+[submodule "blocks"]
+	path = blocks
+	url = https://github.com/markvin/PothosBlocks.git
+	branch = pothos2
