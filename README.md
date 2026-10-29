@@ -15,6 +15,7 @@ the toolkit tells. PothosBase does not replace that build.
 | `core/` | https://github.com/markvin/PothosCore | `pothos2` |
 | `blocks/` | https://github.com/markvin/PothosBlocks | `pothos2` |
 | `comms/` | https://github.com/markvin/PothosComms | `pothos2` |
+| `widgets/` | https://github.com/markvin/PothosWidgets | `pothos2` |
 
 The submodule commits in `main` are a set that builds and passes the
 tests. CI checks this for each change.
@@ -31,10 +32,10 @@ submodule is missing.
 
 ## Dependencies
 
-The dependencies of all repositories (nlohmann_json, Asio, xsimd) come
-from `find_package`. Use one of these two methods:
+The dependencies of all repositories (nlohmann_json, Asio, xsimd, and
+Qt 6 for widgets) come from `find_package`. Use one of these two methods:
 
-- System packages. Arch: `pacman -S asio nlohmann-json xsimd`.
+- System packages. Arch: `pacman -S asio nlohmann-json xsimd qt6-base`.
 - Conan 2:
 
   ```sh
@@ -44,6 +45,12 @@ from `find_package`. Use one of these two methods:
   Then give `-DCMAKE_TOOLCHAIN_FILE=build/conan/conan_toolchain.cmake`
   to CMake. `conanfile.txt` contains the same versions as the
   `conanfile.txt` of each submodule.
+
+Qt 6 (6.5 or higher) is not a Conan package. Install it from the system
+packages or with the Qt installer. When Qt is not in a default location of
+the system, add its prefix to `CMAKE_PREFIX_PATH`. When Qt 6 is missing,
+configure stops with an error; `-DPOTHOS_BASE_WITH_WIDGETS=OFF` builds
+without widgets.
 
 ## Build
 
@@ -56,7 +63,8 @@ Options:
 
 - `POTHOS_BASE_WITH_<TOOLKIT>` (default ON): build the toolkit, for
   example `POTHOS_BASE_WITH_BLOCKS`. The comms tests need blocks: with
-  the tests on, comms without blocks is a configure error.
+  the tests on, comms without blocks is a configure error. Widgets needs
+  Qt 6.
 - `POTHOS_BASE_<NAME>_DIR`: the source directory of a repository
   (default: its submodule). Refer to "Local clones".
 - `POTHOS_BASE_WARNINGS_AS_ERRORS` (default OFF): treat compiler warnings
@@ -80,7 +88,8 @@ The tests:
 3. `base.selftests` runs all self-tests of the core and the toolkits from
    the stage prefix. All modules must come from the stage prefix
    (`POTHOS_PLUGIN_PATH` is not used). Each toolkit must give at least one
-   self-test.
+   self-test. The widgets tests need no display: CTest sets
+   `QT_QPA_PLATFORM=offscreen`.
 
 To run one self-test, run this command after `base.stage`:
 

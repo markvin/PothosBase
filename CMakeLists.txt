@@ -15,7 +15,7 @@ option(POTHOS_BASE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors in all 
 option(POTHOS_BASE_BUILD_TESTS "Register the CTest tests of the aggregate build" ${PROJECT_IS_TOP_LEVEL})
 
 #the toolkits in build order (the core is always first)
-set(pothos_base_all_toolkits blocks comms)
+set(pothos_base_all_toolkits blocks comms widgets)
 foreach(toolkit IN LISTS pothos_base_all_toolkits)
     string(TOUPPER ${toolkit} TOOLKIT)
     option(POTHOS_BASE_WITH_${TOOLKIT} "Build the ${toolkit} toolkit" ON)
@@ -32,6 +32,7 @@ endif ()
 set(POTHOS_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
 set(BLOCKS_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
 set(COMMS_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
+set(WIDGETS_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
 
 ########################################################################
 # pothos_base_add(<name>): add the repository <name> from the dir in
@@ -126,7 +127,10 @@ if (POTHOS_BASE_BUILD_TESTS)
                 "-DTOOLKITS=${POTHOS_BASE_TOOLKITS}"
                 -DMODE=${mode}
                 -P ${PROJECT_SOURCE_DIR}/cmake/PothosBaseSelfTests.cmake)
-        set_tests_properties(base.${mode} PROPERTIES FIXTURES_REQUIRED base_stage)
+        #the widgets need no display: Qt uses the offscreen platform
+        set_tests_properties(base.${mode} PROPERTIES
+            FIXTURES_REQUIRED base_stage
+            ENVIRONMENT QT_QPA_PLATFORM=offscreen)
     endforeach()
     set_tests_properties(base.selftests PROPERTIES
         DEPENDS base.modules
