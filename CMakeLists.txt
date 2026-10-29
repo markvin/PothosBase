@@ -15,17 +15,20 @@ option(POTHOS_BASE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors in all 
 option(POTHOS_BASE_BUILD_TESTS "Register the CTest tests of the aggregate build" ${PROJECT_IS_TOP_LEVEL})
 
 #the toolkits in build order (the core is always first)
-set(pothos_base_all_toolkits blocks comms widgets)
+set(pothos_base_all_toolkits blocks comms widgets soapy)
 foreach(toolkit IN LISTS pothos_base_all_toolkits)
     string(TOUPPER ${toolkit} TOOLKIT)
     option(POTHOS_BASE_WITH_${TOOLKIT} "Build the ${toolkit} toolkit" ON)
 endforeach()
 
-#the comms self-tests use blocks of PothosBlocks (feeder, collector, copier)
-if (POTHOS_BASE_BUILD_TESTS AND POTHOS_BASE_WITH_COMMS AND NOT POTHOS_BASE_WITH_BLOCKS)
-    message(FATAL_ERROR "PothosBase: the comms tests need blocks. "
-        "Set POTHOS_BASE_WITH_BLOCKS=ON, or POTHOS_BASE_WITH_COMMS=OFF, or POTHOS_BASE_BUILD_TESTS=OFF.")
-endif ()
+#the comms and soapy self-tests use blocks of PothosBlocks (feeder, collector, copier)
+foreach(toolkit comms soapy)
+    string(TOUPPER ${toolkit} TOOLKIT)
+    if (POTHOS_BASE_BUILD_TESTS AND POTHOS_BASE_WITH_${TOOLKIT} AND NOT POTHOS_BASE_WITH_BLOCKS)
+        message(FATAL_ERROR "PothosBase: the ${toolkit} tests need blocks. "
+            "Set POTHOS_BASE_WITH_BLOCKS=ON, or POTHOS_BASE_WITH_${TOOLKIT}=OFF, or POTHOS_BASE_BUILD_TESTS=OFF.")
+    endif ()
+endforeach()
 
 #the warnings option of each repository (an option() of the subproject
 #takes the value of a normal variable: CMP0077)
@@ -33,6 +36,7 @@ set(POTHOS_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
 set(BLOCKS_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
 set(COMMS_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
 set(WIDGETS_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
+set(SOAPY_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
 
 ########################################################################
 # pothos_base_add(<name>): add the repository <name> from the dir in

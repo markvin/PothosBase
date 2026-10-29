@@ -14,3 +14,7 @@
 	path = widgets
 	url = https://github.com/markvin/PothosWidgets.git
 	branch = pothos2
+[submodule "soapy"]
+	path = soapy
+	url = https://github.com/markvin/PothosSoapy.git
+	branch = pothos2
