@@ -3,7 +3,7 @@ This is the changelog file for PothosBase.
 Release 0.1.0 (pending)
 ==========================
 
-- First version of the aggregate build: the core and blocks as
+- First version of the aggregate build: the core, blocks and comms as
   submodules on their pothos2 branches, in one CMake tree.
 - POTHOS_BASE_<NAME>_DIR builds a local clone in place of a submodule.
 - Tests: base.stage, base.modules (every module loads) and

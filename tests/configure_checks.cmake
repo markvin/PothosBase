@@ -10,7 +10,8 @@
 #           a local clone (skipped without it)
 #
 # Cases:
-#  - default: the submodules; no warning about local clones
+#  - default: the submodules; no warning about local clones, no CMake
+#    policy warning
 #  - missing: a clone without --recursive (empty submodule dirs) stops with
 #    the git submodule command
 #  - bad_dir: a source dir option to a dir that does not exist stops with
@@ -20,6 +21,8 @@
 #  - override_reset: the same build dir with -U of the option goes back to
 #    the submodule, and the warning goes away
 #  - without_blocks: POTHOS_BASE_WITH_BLOCKS=OFF configures
+#  - comms_without_blocks: comms with the tests on and blocks off stops:
+#    the comms tests need blocks
 #  - empty_core_dir: an empty POTHOS_BASE_CORE_DIR means the submodule,
 #    also for the tests (CORE_DIR of the test commands)
 ########################################################################
@@ -96,6 +99,7 @@ endfunction()
 configure(default "${SRC}" "${WORK}/default" FRESH)
 expect_success(default)
 expect_no_text(default "${override_warning}")
+expect_no_text(default "CMake Warning (policy)")
 message(STATUS "configure_checks: default OK")
 
 #missing: the top-level files of the source with empty submodule dirs
@@ -135,10 +139,17 @@ else ()
     message(STATUS "configure_checks: override, override_reset skipped (no BLOCKS_CLONE)")
 endif ()
 
-#without_blocks
-configure(without_blocks "${SRC}" "${WORK}/without_blocks" FRESH "-DPOTHOS_BASE_WITH_BLOCKS=OFF")
+#without_blocks (comms is off too: its tests need blocks)
+configure(without_blocks "${SRC}" "${WORK}/without_blocks" FRESH
+    "-DPOTHOS_BASE_WITH_BLOCKS=OFF" "-DPOTHOS_BASE_WITH_COMMS=OFF")
 expect_success(without_blocks)
 message(STATUS "configure_checks: without_blocks OK")
+
+#comms_without_blocks
+configure(comms_without_blocks "${SRC}" "${WORK}/comms_without_blocks" FRESH "-DPOTHOS_BASE_WITH_BLOCKS=OFF")
+expect_failure(comms_without_blocks)
+expect_text(comms_without_blocks "the comms tests need blocks")
+message(STATUS "configure_checks: comms_without_blocks OK")
 
 #empty_core_dir
 configure(empty_core_dir "${SRC}" "${WORK}/empty_core_dir" FRESH "-DPOTHOS_BASE_CORE_DIR=")
