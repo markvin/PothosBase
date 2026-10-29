@@ -25,6 +25,9 @@
 #    the comms tests need blocks
 #  - empty_core_dir: an empty POTHOS_BASE_CORE_DIR means the submodule,
 #    also for the tests (CORE_DIR of the test commands)
+#  - without_widgets: POTHOS_BASE_WITH_WIDGETS=OFF configures without Qt
+#  - widgets_without_qt: widgets without Qt 6 stops with the Qt message of
+#    widgets (no build without the module)
 ########################################################################
 cmake_minimum_required(VERSION 3.25)
 foreach(var SRC WORK)
@@ -157,5 +160,17 @@ expect_success(empty_core_dir)
 file(READ "${WORK}/empty_core_dir/CTestTestfile.cmake" case_out)
 expect_text(empty_core_dir "-DCORE_DIR=${SRC}/core\"")
 message(STATUS "configure_checks: empty_core_dir OK")
+
+#without_widgets (no Qt is necessary)
+configure(without_widgets "${SRC}" "${WORK}/without_widgets" FRESH
+    "-DPOTHOS_BASE_WITH_WIDGETS=OFF" "-DCMAKE_DISABLE_FIND_PACKAGE_Qt6=ON")
+expect_success(without_widgets)
+message(STATUS "configure_checks: without_widgets OK")
+
+#widgets_without_qt
+configure(widgets_without_qt "${SRC}" "${WORK}/widgets_without_qt" FRESH "-DCMAKE_DISABLE_FIND_PACKAGE_Qt6=ON")
+expect_failure(widgets_without_qt)
+expect_text(widgets_without_qt "Qt 6 (>= 6.5) with the Widgets component is missing")
+message(STATUS "configure_checks: widgets_without_qt OK")
 
 message(STATUS "configure_checks: all cases passed")

@@ -36,8 +36,11 @@ jobs:
       - name: Submodule pointers are on their branches
         run: tests/check_submodule_pointers.sh
 
-      - name: Install Ninja
-        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      # Ninja; the OpenGL and EGL headers and libraries for the Qt Gui package
+      - name: Install Ninja and the Qt system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgl-dev libegl-dev libxkbcommon-dev libfontconfig1
 
       - name: Dependencies (Conan)
         run: |
@@ -47,11 +50,20 @@ jobs:
             -s build_type=Debug -s compiler.cppstd=23 --build=missing \
             -c tools.cmake.cmaketoolchain:generator=Ninja
 
+      # Qt 6 for widgets: the binary Qt from the Qt mirrors (sets QT_ROOT_DIR).
+      # 6.5.3 is the minimum Qt of widgets; Ubuntu 24.04 has Qt 6.4.
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.5.3'
+          cache: true
+
       - name: Configure
         run: >
           cmake -S . -B build -G Ninja
           -DCMAKE_BUILD_TYPE=Debug
           -DCMAKE_TOOLCHAIN_FILE=build/conan/conan_toolchain.cmake
+          -DCMAKE_PREFIX_PATH=$QT_ROOT_DIR
           -DPOTHOS_BASE_WARNINGS_AS_ERRORS=ON
 
       # keep going after the first error to report all of them in one run
@@ -65,13 +77,14 @@ jobs:
         run: >
           cmake -DSRC=$PWD -DWORK=$PWD/build/configure-checks
           -DTOOLCHAIN=$PWD/build/conan/conan_toolchain.cmake -DBUILD_TYPE=Debug
+          -DPREFIX_PATH=$QT_ROOT_DIR
           -P tests/configure_checks.cmake
 
       # the checks of the test runner on the stage prefix of the Test step
       - name: Runner checks
         run: >
           cmake -DSTAGE=$PWD/build/stage -DWORK=$PWD/build/runner-checks
-          -DCORE_DIR=$PWD/core "-DTOOLKITS=blocks;comms" -DBUILD_DIR=$PWD/build
+          -DCORE_DIR=$PWD/core "-DTOOLKITS=blocks;comms;widgets" -DBUILD_DIR=$PWD/build
           -DENV_SCRIPT=$PWD/build/pothos-env.sh
           -P tests/runner_checks.cmake
 
@@ -86,7 +99,7 @@ jobs:
       options: --init
     steps:
       - name: Install the toolchain and the dependencies
-        run: pacman -Syu --noconfirm base-devel cmake ninja git asio nlohmann-json xsimd
+        run: pacman -Syu --noconfirm base-devel cmake ninja git asio nlohmann-json xsimd qt6-base
 
       - uses: actions/checkout@v4
         with:

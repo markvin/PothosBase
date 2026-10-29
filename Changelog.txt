@@ -10,3 +10,5 @@ Release 0.1.0 (pending)
   base.selftests (all self-tests from one stage prefix).
 - build/pothos-env.sh and pothos-env.ps1 give the environment of the
   stage prefix for a debugger.
+- Add widgets (Qt 6). Qt comes from the system or from the Qt installer,
+  not from Conan. The widgets tests use the offscreen platform of Qt.

@@ -10,3 +10,7 @@
 	path = comms
 	url = https://github.com/markvin/PothosComms.git
 	branch = pothos2
+[submodule "widgets"]
+	path = widgets
+	url = https://github.com/markvin/PothosWidgets.git
+	branch = pothos2
