@@ -28,6 +28,11 @@
 #  - without_widgets: POTHOS_BASE_WITH_WIDGETS=OFF configures without Qt
 #  - widgets_without_qt: widgets without Qt 6 stops with the Qt message of
 #    widgets (no build without the module)
+#  - without_soapy: POTHOS_BASE_WITH_SOAPY=OFF configures without SoapySDR
+#  - soapy_without_soapysdr: soapy without SoapySDR stops with the message
+#    of soapy (no build without the modules)
+#  - soapy_without_blocks: soapy with the tests on and blocks off stops:
+#    the soapy tests need blocks
 ########################################################################
 cmake_minimum_required(VERSION 3.25)
 foreach(var SRC WORK)
@@ -142,14 +147,15 @@ else ()
     message(STATUS "configure_checks: override, override_reset skipped (no BLOCKS_CLONE)")
 endif ()
 
-#without_blocks (comms is off too: its tests need blocks)
+#without_blocks (comms and soapy are off too: their tests need blocks)
 configure(without_blocks "${SRC}" "${WORK}/without_blocks" FRESH
-    "-DPOTHOS_BASE_WITH_BLOCKS=OFF" "-DPOTHOS_BASE_WITH_COMMS=OFF")
+    "-DPOTHOS_BASE_WITH_BLOCKS=OFF" "-DPOTHOS_BASE_WITH_COMMS=OFF" "-DPOTHOS_BASE_WITH_SOAPY=OFF")
 expect_success(without_blocks)
 message(STATUS "configure_checks: without_blocks OK")
 
 #comms_without_blocks
-configure(comms_without_blocks "${SRC}" "${WORK}/comms_without_blocks" FRESH "-DPOTHOS_BASE_WITH_BLOCKS=OFF")
+configure(comms_without_blocks "${SRC}" "${WORK}/comms_without_blocks" FRESH
+    "-DPOTHOS_BASE_WITH_BLOCKS=OFF" "-DPOTHOS_BASE_WITH_SOAPY=OFF")
 expect_failure(comms_without_blocks)
 expect_text(comms_without_blocks "the comms tests need blocks")
 message(STATUS "configure_checks: comms_without_blocks OK")
@@ -172,5 +178,24 @@ configure(widgets_without_qt "${SRC}" "${WORK}/widgets_without_qt" FRESH "-DCMAK
 expect_failure(widgets_without_qt)
 expect_text(widgets_without_qt "Qt 6 (>= 6.5) with the Widgets component is missing")
 message(STATUS "configure_checks: widgets_without_qt OK")
+
+#without_soapy (no SoapySDR is necessary)
+configure(without_soapy "${SRC}" "${WORK}/without_soapy" FRESH
+    "-DPOTHOS_BASE_WITH_SOAPY=OFF" "-DCMAKE_DISABLE_FIND_PACKAGE_SoapySDR=ON")
+expect_success(without_soapy)
+message(STATUS "configure_checks: without_soapy OK")
+
+#soapy_without_soapysdr
+configure(soapy_without_soapysdr "${SRC}" "${WORK}/soapy_without_soapysdr" FRESH "-DCMAKE_DISABLE_FIND_PACKAGE_SoapySDR=ON")
+expect_failure(soapy_without_soapysdr)
+expect_text(soapy_without_soapysdr "PothosSoapy: missing build dependencies: SoapySDR")
+message(STATUS "configure_checks: soapy_without_soapysdr OK")
+
+#soapy_without_blocks
+configure(soapy_without_blocks "${SRC}" "${WORK}/soapy_without_blocks" FRESH
+    "-DPOTHOS_BASE_WITH_BLOCKS=OFF" "-DPOTHOS_BASE_WITH_COMMS=OFF")
+expect_failure(soapy_without_blocks)
+expect_text(soapy_without_blocks "the soapy tests need blocks")
+message(STATUS "configure_checks: soapy_without_blocks OK")
 
 message(STATUS "configure_checks: all cases passed")

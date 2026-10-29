@@ -9,6 +9,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  # SoapySDR is not in Conan: the linux job builds it from this tag
+  SOAPYSDR_REPO: pothosware/SoapySDR
+  SOAPYSDR_REF: soapy-sdr-0.9.0
+
 jobs:
   # the dependencies from Conan 2
   linux:
@@ -58,12 +63,49 @@ jobs:
           version: '6.5.3'
           cache: true
 
+      # SoapySDR for soapy is not in Conan: build it from the upstream source
+      # (the same tag as the CI of soapy). The key has a hash of this file.
+      - name: Restore SoapySDR
+        id: soapysdr-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: soapysdr-install
+          key: soapysdr-${{ env.SOAPYSDR_REF }}-linux-gcc-Debug-${{ hashFiles('.github/workflows/ci.yml') }}
+
+      - name: Check out SoapySDR
+        if: steps.soapysdr-cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.SOAPYSDR_REPO }}
+          ref: ${{ env.SOAPYSDR_REF }}
+          path: soapysdr-src
+
+      # only the library and the headers: no language bindings, apps, docs, tests
+      - name: Build and install SoapySDR
+        if: steps.soapysdr-cache.outputs.cache-hit != 'true'
+        run: |
+          cmake -S soapysdr-src -B soapysdr-src/build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_INSTALL_PREFIX="$PWD/soapysdr-install" \
+            -DENABLE_APPS=OFF -DENABLE_DOCS=OFF -DENABLE_TESTS=OFF \
+            -DENABLE_PYTHON2=OFF -DENABLE_PYTHON3=OFF -DENABLE_CSHARP=OFF -DENABLE_LUAJIT=OFF
+          cmake --build soapysdr-src/build
+          cmake --install soapysdr-src/build
+
+      # save now: a failed test must not make the next run build SoapySDR again
+      - name: Save SoapySDR
+        if: steps.soapysdr-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: soapysdr-install
+          key: ${{ steps.soapysdr-cache.outputs.cache-primary-key }}
+
       - name: Configure
         run: >
           cmake -S . -B build -G Ninja
           -DCMAKE_BUILD_TYPE=Debug
           -DCMAKE_TOOLCHAIN_FILE=build/conan/conan_toolchain.cmake
-          -DCMAKE_PREFIX_PATH=$QT_ROOT_DIR
+          "-DCMAKE_PREFIX_PATH=$QT_ROOT_DIR;$PWD/soapysdr-install"
           -DPOTHOS_BASE_WARNINGS_AS_ERRORS=ON
 
       # keep going after the first error to report all of them in one run
@@ -77,14 +119,14 @@ jobs:
         run: >
           cmake -DSRC=$PWD -DWORK=$PWD/build/configure-checks
           -DTOOLCHAIN=$PWD/build/conan/conan_toolchain.cmake -DBUILD_TYPE=Debug
-          -DPREFIX_PATH=$QT_ROOT_DIR
+          "-DPREFIX_PATH=$QT_ROOT_DIR|$PWD/soapysdr-install"
           -P tests/configure_checks.cmake
 
       # the checks of the test runner on the stage prefix of the Test step
       - name: Runner checks
         run: >
           cmake -DSTAGE=$PWD/build/stage -DWORK=$PWD/build/runner-checks
-          -DCORE_DIR=$PWD/core "-DTOOLKITS=blocks;comms;widgets" -DBUILD_DIR=$PWD/build
+          -DCORE_DIR=$PWD/core "-DTOOLKITS=blocks;comms;widgets;soapy" -DBUILD_DIR=$PWD/build
           -DENV_SCRIPT=$PWD/build/pothos-env.sh
           -P tests/runner_checks.cmake
 
@@ -99,7 +141,7 @@ jobs:
       options: --init
     steps:
       - name: Install the toolchain and the dependencies
-        run: pacman -Syu --noconfirm base-devel cmake ninja git asio nlohmann-json xsimd qt6-base
+        run: pacman -Syu --noconfirm base-devel cmake ninja git asio nlohmann-json xsimd qt6-base soapysdr
 
       - uses: actions/checkout@v4
         with:
