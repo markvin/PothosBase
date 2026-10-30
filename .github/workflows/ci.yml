@@ -13,6 +13,10 @@ env:
   # SoapySDR is not in Conan: the linux job builds it from this tag
   SOAPYSDR_REPO: pothosware/SoapySDR
   SOAPYSDR_REF: soapy-sdr-0.9.0
+  # Qwt is not in Conan: the linux job builds the upstream release archive
+  # with the qmake of the Qt below (the same version as the CI of plotters)
+  QWT_VERSION: '6.3.0'
+  QWT_SHA256: dcb085896c28aaec5518cbc08c0ee2b4e60ada7ac929d82639f6189851a6129a
 
 jobs:
   # the dependencies from Conan 2
@@ -55,8 +59,8 @@ jobs:
             -s build_type=Debug -s compiler.cppstd=23 --build=missing \
             -c tools.cmake.cmaketoolchain:generator=Ninja
 
-      # Qt 6 for widgets: the binary Qt from the Qt mirrors (sets QT_ROOT_DIR).
-      # 6.5.3 is the minimum Qt of widgets; Ubuntu 24.04 has Qt 6.4.
+      # Qt 6 for widgets and plotters: the binary Qt from the Qt mirrors (sets
+      # QT_ROOT_DIR). 6.5.3 is the minimum Qt of both; Ubuntu 24.04 has Qt 6.4.
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
@@ -100,12 +104,48 @@ jobs:
           path: soapysdr-install
           key: ${{ steps.soapysdr-cache.outputs.cache-primary-key }}
 
+      # Qwt for plotters is not in Conan: build it from the upstream release
+      # archive with the qmake of the Qt above. The key has a hash of this file.
+      - name: Restore Qwt
+        id: qwt-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: qwt-install
+          key: qwt-${{ env.QWT_VERSION }}-linux-qt6.5.3-${{ hashFiles('.github/workflows/ci.yml') }}
+
+      # only the library: no designer plugin, examples, tests, polar plots,
+      # SVG or OpenGL support, only the release build
+      - name: Build and install Qwt
+        if: steps.qwt-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -sSL --retry 3 -o qwt.tar.bz2 \
+            "https://downloads.sourceforge.net/project/qwt/qwt/$QWT_VERSION/qwt-$QWT_VERSION.tar.bz2"
+          echo "$QWT_SHA256  qwt.tar.bz2" | sha256sum -c -
+          tar -xjf qwt.tar.bz2
+          cd "qwt-$QWT_VERSION"
+          #qwtconfig.pri uses the prefix at once (QWT_INSTALL_LIBS = ...):
+          #replace the lines, do not add a new one at the end
+          sed -i -E "s|^([[:space:]]*QWT_INSTALL_PREFIX[[:space:]]*=).*|\1 $GITHUB_WORKSPACE/qwt-install|" qwtconfig.pri
+          echo "QWT_CONFIG -= QwtPolar QwtSvg QwtOpenGL QwtDesigner QwtDesignerSelfContained QwtExamples QwtPlayground QwtTests QwtFramework" >> qwtconfig.pri
+          printf 'CONFIG -= debug_and_release build_all debug\nCONFIG += release\n' >> qwtbuild.pri
+          qmake qwt.pro
+          make -j4
+          make install
+
+      # save now: a failed test must not make the next run build Qwt again
+      - name: Save Qwt
+        if: steps.qwt-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: qwt-install
+          key: ${{ steps.qwt-cache.outputs.cache-primary-key }}
+
       - name: Configure
         run: >
           cmake -S . -B build -G Ninja
           -DCMAKE_BUILD_TYPE=Debug
           -DCMAKE_TOOLCHAIN_FILE=build/conan/conan_toolchain.cmake
-          "-DCMAKE_PREFIX_PATH=$QT_ROOT_DIR;$PWD/soapysdr-install"
+          "-DCMAKE_PREFIX_PATH=$QT_ROOT_DIR;$PWD/soapysdr-install;$PWD/qwt-install"
           -DPOTHOS_BASE_WARNINGS_AS_ERRORS=ON
 
       # keep going after the first error to report all of them in one run
@@ -119,14 +159,14 @@ jobs:
         run: >
           cmake -DSRC=$PWD -DWORK=$PWD/build/configure-checks
           -DTOOLCHAIN=$PWD/build/conan/conan_toolchain.cmake -DBUILD_TYPE=Debug
-          "-DPREFIX_PATH=$QT_ROOT_DIR|$PWD/soapysdr-install"
+          "-DPREFIX_PATH=$QT_ROOT_DIR|$PWD/soapysdr-install|$PWD/qwt-install"
           -P tests/configure_checks.cmake
 
       # the checks of the test runner on the stage prefix of the Test step
       - name: Runner checks
         run: >
           cmake -DSTAGE=$PWD/build/stage -DWORK=$PWD/build/runner-checks
-          -DCORE_DIR=$PWD/core "-DTOOLKITS=blocks;comms;widgets;soapy" -DBUILD_DIR=$PWD/build
+          -DCORE_DIR=$PWD/core "-DTOOLKITS=blocks;comms;widgets;soapy;plotters" -DBUILD_DIR=$PWD/build
           -DENV_SCRIPT=$PWD/build/pothos-env.sh
           -P tests/runner_checks.cmake
 
@@ -141,7 +181,7 @@ jobs:
       options: --init
     steps:
       - name: Install the toolchain and the dependencies
-        run: pacman -Syu --noconfirm base-devel cmake ninja git asio nlohmann-json xsimd qt6-base soapysdr
+        run: pacman -Syu --noconfirm base-devel cmake ninja git asio nlohmann-json xsimd qt6-base soapysdr qwt
 
       - uses: actions/checkout@v4
         with:
