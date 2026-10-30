@@ -18,3 +18,7 @@
 	path = soapy
 	url = https://github.com/markvin/PothosSoapy.git
 	branch = pothos2
+[submodule "plotters"]
+	path = plotters
+	url = https://github.com/markvin/PothosPlotters.git
+	branch = pothos2

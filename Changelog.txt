@@ -15,3 +15,6 @@ Release 0.1.0 (pending)
 - Add soapy (SoapySDR). SoapySDR comes from the system or from a build
   from the source, not from Conan. The soapy tests need blocks and no SDR
   hardware.
+- Add plotters (Qt 6 and Qwt 6.3 for Qt 6). Qwt comes from the system or
+  from a build from the source, not from Conan. Plotters needs comms (a
+  configure error without it); its tests need blocks.

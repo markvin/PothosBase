@@ -33,6 +33,11 @@
 #    of soapy (no build without the modules)
 #  - soapy_without_blocks: soapy with the tests on and blocks off stops:
 #    the soapy tests need blocks
+#  - without_plotters: POTHOS_BASE_WITH_PLOTTERS=OFF configures without Qwt
+#  - plotters_without_qwt: plotters without Qwt stops with the Qwt message
+#    of plotters (no build without the modules)
+#  - plotters_without_comms: plotters with comms off stops: the plotters
+#    use /comms/wave_trigger
 ########################################################################
 cmake_minimum_required(VERSION 3.25)
 foreach(var SRC WORK)
@@ -147,9 +152,10 @@ else ()
     message(STATUS "configure_checks: override, override_reset skipped (no BLOCKS_CLONE)")
 endif ()
 
-#without_blocks (comms and soapy are off too: their tests need blocks)
+#without_blocks (comms, soapy and plotters are off too: their tests need blocks)
 configure(without_blocks "${SRC}" "${WORK}/without_blocks" FRESH
-    "-DPOTHOS_BASE_WITH_BLOCKS=OFF" "-DPOTHOS_BASE_WITH_COMMS=OFF" "-DPOTHOS_BASE_WITH_SOAPY=OFF")
+    "-DPOTHOS_BASE_WITH_BLOCKS=OFF" "-DPOTHOS_BASE_WITH_COMMS=OFF" "-DPOTHOS_BASE_WITH_SOAPY=OFF"
+    "-DPOTHOS_BASE_WITH_PLOTTERS=OFF")
 expect_success(without_blocks)
 message(STATUS "configure_checks: without_blocks OK")
 
@@ -167,9 +173,9 @@ file(READ "${WORK}/empty_core_dir/CTestTestfile.cmake" case_out)
 expect_text(empty_core_dir "-DCORE_DIR=${SRC}/core\"")
 message(STATUS "configure_checks: empty_core_dir OK")
 
-#without_widgets (no Qt is necessary)
+#without_widgets (no Qt is necessary; plotters needs Qt too)
 configure(without_widgets "${SRC}" "${WORK}/without_widgets" FRESH
-    "-DPOTHOS_BASE_WITH_WIDGETS=OFF" "-DCMAKE_DISABLE_FIND_PACKAGE_Qt6=ON")
+    "-DPOTHOS_BASE_WITH_WIDGETS=OFF" "-DPOTHOS_BASE_WITH_PLOTTERS=OFF" "-DCMAKE_DISABLE_FIND_PACKAGE_Qt6=ON")
 expect_success(without_widgets)
 message(STATUS "configure_checks: without_widgets OK")
 
@@ -197,5 +203,23 @@ configure(soapy_without_blocks "${SRC}" "${WORK}/soapy_without_blocks" FRESH
 expect_failure(soapy_without_blocks)
 expect_text(soapy_without_blocks "the soapy tests need blocks")
 message(STATUS "configure_checks: soapy_without_blocks OK")
+
+#without_plotters (no Qwt is necessary)
+configure(without_plotters "${SRC}" "${WORK}/without_plotters" FRESH
+    "-DPOTHOS_BASE_WITH_PLOTTERS=OFF" "-DCMAKE_DISABLE_FIND_PACKAGE_Qwt=ON")
+expect_success(without_plotters)
+message(STATUS "configure_checks: without_plotters OK")
+
+#plotters_without_qwt
+configure(plotters_without_qwt "${SRC}" "${WORK}/plotters_without_qwt" FRESH "-DCMAKE_DISABLE_FIND_PACKAGE_Qwt=ON")
+expect_failure(plotters_without_qwt)
+expect_text(plotters_without_qwt "PothosPlotters: Qwt (>= 6.3.0) for Qt 6 is missing")
+message(STATUS "configure_checks: plotters_without_qwt OK")
+
+#plotters_without_comms
+configure(plotters_without_comms "${SRC}" "${WORK}/plotters_without_comms" FRESH "-DPOTHOS_BASE_WITH_COMMS=OFF")
+expect_failure(plotters_without_comms)
+expect_text(plotters_without_comms "plotters needs comms")
+message(STATUS "configure_checks: plotters_without_comms OK")
 
 message(STATUS "configure_checks: all cases passed")

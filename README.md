@@ -17,6 +17,7 @@ the toolkit tells. PothosBase does not replace that build.
 | `comms/` | https://github.com/markvin/PothosComms | `pothos2` |
 | `widgets/` | https://github.com/markvin/PothosWidgets | `pothos2` |
 | `soapy/` | https://github.com/markvin/PothosSoapy | `pothos2` |
+| `plotters/` | https://github.com/markvin/PothosPlotters | `pothos2` |
 
 The submodule commits in `main` are a set that builds and passes the
 tests. CI checks this for each change.
@@ -34,10 +35,11 @@ submodule is missing.
 ## Dependencies
 
 The dependencies of all repositories (nlohmann_json, Asio, xsimd, Qt 6
-for widgets and SoapySDR for soapy) come from `find_package`. Use one of
+for widgets and plotters, SoapySDR for soapy, Qwt for plotters) come from
+`find_package`. Use one of
 these two methods:
 
-- System packages. Arch: `pacman -S asio nlohmann-json xsimd qt6-base soapysdr`.
+- System packages. Arch: `pacman -S asio nlohmann-json xsimd qt6-base soapysdr qwt`.
 - Conan 2:
 
   ```sh
@@ -51,14 +53,21 @@ these two methods:
 Qt 6 (6.5 or higher) is not a Conan package. Install it from the system
 packages or with the Qt installer. When Qt is not in a default location of
 the system, add its prefix to `CMAKE_PREFIX_PATH`. When Qt 6 is missing,
-configure stops with an error; `-DPOTHOS_BASE_WITH_WIDGETS=OFF` builds
-without widgets.
+configure stops with an error; `-DPOTHOS_BASE_WITH_WIDGETS=OFF` and
+`-DPOTHOS_BASE_WITH_PLOTTERS=OFF` build without widgets and plotters.
 
 SoapySDR (0.8 or higher) is not a Conan package. Install it from the
 system packages, or build it from the source
 (https://github.com/pothosware/SoapySDR) and add its install prefix to
 `CMAKE_PREFIX_PATH`. When SoapySDR is missing, configure stops with an
 error; `-DPOTHOS_BASE_WITH_SOAPY=OFF` builds without soapy.
+
+Qwt (6.3 or higher, built for Qt 6) is not a Conan package. Install it
+from the system packages, or build it from the source
+(https://qwt.sourceforge.io) with the `qmake` of your Qt 6 and add its
+install prefix to `CMAKE_PREFIX_PATH`. When Qwt is missing, or it is built
+for Qt 5, configure stops with an error; `-DPOTHOS_BASE_WITH_PLOTTERS=OFF`
+builds without plotters.
 
 ## Build
 
@@ -70,9 +79,11 @@ cmake --build build
 Options:
 
 - `POTHOS_BASE_WITH_<TOOLKIT>` (default ON): build the toolkit, for
-  example `POTHOS_BASE_WITH_BLOCKS`. The comms and soapy tests need
-  blocks: with the tests on, comms or soapy without blocks is a configure
-  error. Widgets needs Qt 6. Soapy needs SoapySDR.
+  example `POTHOS_BASE_WITH_BLOCKS`. The comms, soapy and plotters tests
+  need blocks: with the tests on, one of them without blocks is a
+  configure error. Plotters needs comms (the plotters use
+  `/comms/wave_trigger`): plotters without comms is a configure error.
+  Widgets needs Qt 6. Soapy needs SoapySDR. Plotters needs Qt 6 and Qwt.
 - `POTHOS_BASE_<NAME>_DIR`: the source directory of a repository
   (default: its submodule). Refer to "Local clones".
 - `POTHOS_BASE_WARNINGS_AS_ERRORS` (default OFF): treat compiler warnings
@@ -96,7 +107,7 @@ The tests:
 3. `base.selftests` runs all self-tests of the core and the toolkits from
    the stage prefix. All modules must come from the stage prefix
    (`POTHOS_PLUGIN_PATH` is not used). Each toolkit must give at least one
-   self-test. The widgets tests need no display: CTest sets
+   self-test. The widgets and plotters tests need no display: CTest sets
    `QT_QPA_PLATFORM=offscreen`. The soapy tests need no SDR hardware:
    they use a SoapySDR test driver of soapy.
 
