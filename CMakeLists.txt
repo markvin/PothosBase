@@ -15,15 +15,15 @@ option(POTHOS_BASE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors in all 
 option(POTHOS_BASE_BUILD_TESTS "Register the CTest tests of the aggregate build" ${PROJECT_IS_TOP_LEVEL})
 
 #the toolkits in build order (the core is always first)
-set(pothos_base_all_toolkits blocks comms widgets soapy plotters flow)
+set(pothos_base_all_toolkits blocks comms widgets soapy plotters flow audio)
 foreach(toolkit IN LISTS pothos_base_all_toolkits)
     string(TOUPPER ${toolkit} TOOLKIT)
     option(POTHOS_BASE_WITH_${TOOLKIT} "Build the ${toolkit} toolkit" ON)
 endforeach()
 
-#the comms, soapy and plotters self-tests use blocks of PothosBlocks (feeder, collector, copier),
-#and the flow smoke test checks /blocks/copier in the block cache
-foreach(toolkit comms soapy plotters flow)
+#the comms, soapy, plotters and audio self-tests use blocks of PothosBlocks (feeder, collector,
+#copier, pacer), and the flow smoke test checks /blocks/copier in the block cache
+foreach(toolkit comms soapy plotters flow audio)
     string(TOUPPER ${toolkit} TOOLKIT)
     if (POTHOS_BASE_BUILD_TESTS AND POTHOS_BASE_WITH_${TOOLKIT} AND NOT POTHOS_BASE_WITH_BLOCKS)
         message(FATAL_ERROR "PothosBase: the ${toolkit} tests need blocks. "
@@ -46,6 +46,7 @@ set(WIDGETS_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
 set(SOAPY_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
 set(PLOTTERS_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
 set(FLOW_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
+set(AUDIO_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
 #the flow smoke test executable; base.flow runs it from the stage prefix
 set(FLOW_BUILD_SMOKE_TEST ${POTHOS_BASE_BUILD_TESTS})
 
@@ -150,10 +151,11 @@ if (POTHOS_BASE_BUILD_TESTS)
                 "-DTOOLKITS=${mode_toolkits}"
                 -DMODE=${mode}
                 -P ${PROJECT_SOURCE_DIR}/cmake/PothosBaseSelfTests.cmake)
-        #the widgets and the plotters need no display: Qt uses the offscreen platform
+        #the widgets and the plotters need no display: Qt uses the offscreen platform;
+        #the audio tests need no sound card: miniaudio uses its null backend
         set_tests_properties(base.${mode} PROPERTIES
             FIXTURES_REQUIRED base_stage
-            ENVIRONMENT QT_QPA_PLATFORM=offscreen)
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen;POTHOS_AUDIO_BACKEND=null")
     endforeach()
     set_tests_properties(base.selftests PROPERTIES
         DEPENDS base.modules

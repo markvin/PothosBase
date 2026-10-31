@@ -19,6 +19,7 @@ the toolkit tells. PothosBase does not replace that build.
 | `soapy/` | https://github.com/markvin/PothosSoapy | `pothos2` |
 | `plotters/` | https://github.com/markvin/PothosPlotters | `pothos2` |
 | `flow/` | https://github.com/markvin/PothosFlow | `pothos2` |
+| `audio/` | https://github.com/markvin/PothosAudio | `pothos2` |
 
 The submodule commits in `main` are a set that builds and passes the
 tests. CI checks this for each change.
@@ -37,7 +38,7 @@ submodule is missing.
 
 The dependencies of all repositories (nlohmann_json, Asio, xsimd, Qt 6
 for widgets, plotters and flow, SoapySDR for soapy, Qwt for plotters) come from
-`find_package`. Use one of
+`find_package`. audio has a copy of miniaudio and needs no audio packages. Use one of
 these two methods:
 
 - System packages. Arch: `pacman -S asio nlohmann-json xsimd qt6-base soapysdr qwt`.
@@ -81,8 +82,8 @@ cmake --build build
 Options:
 
 - `POTHOS_BASE_WITH_<TOOLKIT>` (default ON): build the toolkit, for
-  example `POTHOS_BASE_WITH_BLOCKS`. The comms, soapy, plotters and flow
-  tests need blocks: with the tests on, one of them without blocks is a
+  example `POTHOS_BASE_WITH_BLOCKS`. The comms, soapy, plotters, flow and
+  audio tests need blocks: with the tests on, one of them without blocks is a
   configure error. Plotters needs comms (the plotters use
   `/comms/wave_trigger`): plotters without comms is a configure error.
   Widgets needs Qt 6. Soapy needs SoapySDR. Plotters needs Qt 6 and Qwt.
@@ -113,7 +114,9 @@ The tests:
    self-test (flow is an application without self-tests: it has
    `base.flow`). The widgets and plotters tests need no display: CTest sets
    `QT_QPA_PLATFORM=offscreen`. The soapy tests need no SDR hardware:
-   they use a SoapySDR test driver of soapy.
+   they use a SoapySDR test driver of soapy. The audio tests need no
+   sound card: CTest sets `POTHOS_AUDIO_BACKEND=null` (the null backend
+   of miniaudio).
 4. `base.flow` runs the smoke test of flow (`PothosFlowSmokeTest`) from
    the stage prefix: the main window, the block cache, Help → About, the
    message window and the exit, with the Qt platform `offscreen`. The

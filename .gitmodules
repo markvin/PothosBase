@@ -26,3 +26,7 @@
 	path = flow
 	url = https://github.com/markvin/PothosFlow.git
 	branch = pothos2
+[submodule "audio"]
+	path = audio
+	url = https://github.com/markvin/PothosAudio.git
+	branch = pothos2
