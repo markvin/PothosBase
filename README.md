@@ -115,8 +115,8 @@ The tests:
    `base.flow`). The widgets and plotters tests need no display: CTest sets
    `QT_QPA_PLATFORM=offscreen`. The soapy tests need no SDR hardware:
    they use a SoapySDR test driver of soapy. The audio tests need no
-   sound card: CTest sets `POTHOS_AUDIO_BACKEND=null` (the null backend
-   of miniaudio).
+   sound card: the test runner sets `POTHOS_AUDIO_BACKEND=null` (the null
+   backend of miniaudio) when it is not set.
 4. `base.flow` runs the smoke test of flow (`PothosFlowSmokeTest`) from
    the stage prefix: the main window, the block cache, Help → About, the
    message window and the exit, with the Qt platform `offscreen`. The

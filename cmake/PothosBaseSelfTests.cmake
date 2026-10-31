@@ -32,6 +32,14 @@ endforeach()
 include(${CORE_DIR}/cmake/PothosTestEnv.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/PothosBaseModulePaths.cmake)
 pothos_test_env("${PREFIX}" "${TEST_HOME_DIR}" "${BINDIR}" "${LIBDIR}")
+#no display and no sound card: Qt uses the offscreen platform, miniaudio its
+#null backend (the CTest tests and a direct run of this script are the same)
+if (NOT DEFINED ENV{QT_QPA_PLATFORM})
+    set(ENV{QT_QPA_PLATFORM} "offscreen")
+endif ()
+if (NOT DEFINED ENV{POTHOS_AUDIO_BACKEND})
+    set(ENV{POTHOS_AUDIO_BACKEND} "null")
+endif ()
 #only the modules of the prefix
 unset(ENV{POTHOS_PLUGIN_PATH})
 
