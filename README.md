@@ -30,6 +30,13 @@ tests. CI checks this for each change.
 git clone --recurse-submodules https://github.com/markvin/PothosBase.git
 ```
 
+For the release 2.0.0 of the core (the toolkits of the same release),
+clone the tag `pothos-base-0.1.0`:
+
+```sh
+git clone --recurse-submodules --branch pothos-base-0.1.0 https://github.com/markvin/PothosBase.git
+```
+
 If you cloned without `--recurse-submodules`, run
 `git submodule update --init`. Configure stops with this command when a
 submodule is missing.

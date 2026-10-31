@@ -1,8 +1,12 @@
 This is the changelog file for PothosBase.
 
-Release 0.1.0 (pending)
+Release 0.1.0 (2026-10-31)
 ==========================
 
+- The submodules point to the releases for the Pothos core 2.0.0: core
+  pothos-2.0.0, blocks pothos-blocks-0.6.0, comms pothos-comms-0.4.0,
+  widgets pothos-widgets-0.6.0, soapy pothos-soapy-0.6.0, plotters
+  pothos-plotters-0.5.0, flow pothos-flow-0.8.0, audio pothos-audio-0.4.0.
 - First version of the aggregate build: the core, blocks and comms as
   submodules on their pothos2 branches, in one CMake tree.
 - POTHOS_BASE_<NAME>_DIR builds a local clone in place of a submodule.
