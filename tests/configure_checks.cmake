@@ -38,6 +38,8 @@
 #    of plotters (no build without the modules)
 #  - plotters_without_comms: plotters with comms off stops: the plotters
 #    use /comms/wave_trigger
+#  - flow_without_blocks: flow with the tests on and blocks off stops: the
+#    flow smoke test checks the blocks in the block cache
 ########################################################################
 cmake_minimum_required(VERSION 3.25)
 foreach(var SRC WORK)
@@ -152,10 +154,10 @@ else ()
     message(STATUS "configure_checks: override, override_reset skipped (no BLOCKS_CLONE)")
 endif ()
 
-#without_blocks (comms, soapy and plotters are off too: their tests need blocks)
+#without_blocks (comms, soapy, plotters and flow are off too: their tests need blocks)
 configure(without_blocks "${SRC}" "${WORK}/without_blocks" FRESH
     "-DPOTHOS_BASE_WITH_BLOCKS=OFF" "-DPOTHOS_BASE_WITH_COMMS=OFF" "-DPOTHOS_BASE_WITH_SOAPY=OFF"
-    "-DPOTHOS_BASE_WITH_PLOTTERS=OFF")
+    "-DPOTHOS_BASE_WITH_PLOTTERS=OFF" "-DPOTHOS_BASE_WITH_FLOW=OFF")
 expect_success(without_blocks)
 message(STATUS "configure_checks: without_blocks OK")
 
@@ -173,9 +175,10 @@ file(READ "${WORK}/empty_core_dir/CTestTestfile.cmake" case_out)
 expect_text(empty_core_dir "-DCORE_DIR=${SRC}/core\"")
 message(STATUS "configure_checks: empty_core_dir OK")
 
-#without_widgets (no Qt is necessary; plotters needs Qt too)
+#without_widgets (no Qt is necessary; plotters and flow need Qt too)
 configure(without_widgets "${SRC}" "${WORK}/without_widgets" FRESH
-    "-DPOTHOS_BASE_WITH_WIDGETS=OFF" "-DPOTHOS_BASE_WITH_PLOTTERS=OFF" "-DCMAKE_DISABLE_FIND_PACKAGE_Qt6=ON")
+    "-DPOTHOS_BASE_WITH_WIDGETS=OFF" "-DPOTHOS_BASE_WITH_PLOTTERS=OFF" "-DPOTHOS_BASE_WITH_FLOW=OFF"
+    "-DCMAKE_DISABLE_FIND_PACKAGE_Qt6=ON")
 expect_success(without_widgets)
 message(STATUS "configure_checks: without_widgets OK")
 
@@ -221,5 +224,13 @@ configure(plotters_without_comms "${SRC}" "${WORK}/plotters_without_comms" FRESH
 expect_failure(plotters_without_comms)
 expect_text(plotters_without_comms "plotters needs comms")
 message(STATUS "configure_checks: plotters_without_comms OK")
+
+#flow_without_blocks
+configure(flow_without_blocks "${SRC}" "${WORK}/flow_without_blocks" FRESH
+    "-DPOTHOS_BASE_WITH_BLOCKS=OFF" "-DPOTHOS_BASE_WITH_COMMS=OFF" "-DPOTHOS_BASE_WITH_SOAPY=OFF"
+    "-DPOTHOS_BASE_WITH_PLOTTERS=OFF")
+expect_failure(flow_without_blocks)
+expect_text(flow_without_blocks "the flow tests need blocks")
+message(STATUS "configure_checks: flow_without_blocks OK")
 
 message(STATUS "configure_checks: all cases passed")

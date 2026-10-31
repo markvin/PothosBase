@@ -22,3 +22,7 @@
 	path = plotters
 	url = https://github.com/markvin/PothosPlotters.git
 	branch = pothos2
+[submodule "flow"]
+	path = flow
+	url = https://github.com/markvin/PothosFlow.git
+	branch = pothos2

@@ -59,8 +59,8 @@ jobs:
             -s build_type=Debug -s compiler.cppstd=23 --build=missing \
             -c tools.cmake.cmaketoolchain:generator=Ninja
 
-      # Qt 6 for widgets and plotters: the binary Qt from the Qt mirrors (sets
-      # QT_ROOT_DIR). 6.5.3 is the minimum Qt of both; Ubuntu 24.04 has Qt 6.4.
+      # Qt 6 for widgets, plotters and flow: the binary Qt from the Qt mirrors (sets
+      # QT_ROOT_DIR). 6.5.3 is the minimum Qt of the three; Ubuntu 24.04 has Qt 6.4.
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
