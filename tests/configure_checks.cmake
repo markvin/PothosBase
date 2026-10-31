@@ -40,6 +40,8 @@
 #    use /comms/wave_trigger
 #  - flow_without_blocks: flow with the tests on and blocks off stops: the
 #    flow smoke test checks the blocks in the block cache
+#  - audio_without_blocks: audio with the tests on and blocks off stops:
+#    the audio self-tests use the feeder, collector and pacer blocks
 ########################################################################
 cmake_minimum_required(VERSION 3.25)
 foreach(var SRC WORK)
@@ -154,10 +156,10 @@ else ()
     message(STATUS "configure_checks: override, override_reset skipped (no BLOCKS_CLONE)")
 endif ()
 
-#without_blocks (comms, soapy, plotters and flow are off too: their tests need blocks)
+#without_blocks (comms, soapy, plotters, flow and audio are off too: their tests need blocks)
 configure(without_blocks "${SRC}" "${WORK}/without_blocks" FRESH
     "-DPOTHOS_BASE_WITH_BLOCKS=OFF" "-DPOTHOS_BASE_WITH_COMMS=OFF" "-DPOTHOS_BASE_WITH_SOAPY=OFF"
-    "-DPOTHOS_BASE_WITH_PLOTTERS=OFF" "-DPOTHOS_BASE_WITH_FLOW=OFF")
+    "-DPOTHOS_BASE_WITH_PLOTTERS=OFF" "-DPOTHOS_BASE_WITH_FLOW=OFF" "-DPOTHOS_BASE_WITH_AUDIO=OFF")
 expect_success(without_blocks)
 message(STATUS "configure_checks: without_blocks OK")
 
@@ -228,9 +230,17 @@ message(STATUS "configure_checks: plotters_without_comms OK")
 #flow_without_blocks
 configure(flow_without_blocks "${SRC}" "${WORK}/flow_without_blocks" FRESH
     "-DPOTHOS_BASE_WITH_BLOCKS=OFF" "-DPOTHOS_BASE_WITH_COMMS=OFF" "-DPOTHOS_BASE_WITH_SOAPY=OFF"
-    "-DPOTHOS_BASE_WITH_PLOTTERS=OFF")
+    "-DPOTHOS_BASE_WITH_PLOTTERS=OFF" "-DPOTHOS_BASE_WITH_AUDIO=OFF")
 expect_failure(flow_without_blocks)
 expect_text(flow_without_blocks "the flow tests need blocks")
 message(STATUS "configure_checks: flow_without_blocks OK")
+
+#audio_without_blocks
+configure(audio_without_blocks "${SRC}" "${WORK}/audio_without_blocks" FRESH
+    "-DPOTHOS_BASE_WITH_BLOCKS=OFF" "-DPOTHOS_BASE_WITH_COMMS=OFF" "-DPOTHOS_BASE_WITH_SOAPY=OFF"
+    "-DPOTHOS_BASE_WITH_PLOTTERS=OFF" "-DPOTHOS_BASE_WITH_FLOW=OFF")
+expect_failure(audio_without_blocks)
+expect_text(audio_without_blocks "the audio tests need blocks")
+message(STATUS "configure_checks: audio_without_blocks OK")
 
 message(STATUS "configure_checks: all cases passed")

@@ -166,7 +166,7 @@ jobs:
       - name: Runner checks
         run: >
           cmake -DSTAGE=$PWD/build/stage -DWORK=$PWD/build/runner-checks
-          -DCORE_DIR=$PWD/core "-DTOOLKITS=blocks;comms;widgets;soapy;plotters" -DBUILD_DIR=$PWD/build
+          -DCORE_DIR=$PWD/core "-DTOOLKITS=blocks;comms;widgets;soapy;plotters;audio" -DBUILD_DIR=$PWD/build
           -DENV_SCRIPT=$PWD/build/pothos-env.sh
           -P tests/runner_checks.cmake
 
