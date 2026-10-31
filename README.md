@@ -112,8 +112,9 @@ The tests:
    the stage prefix. All modules must come from the stage prefix
    (`POTHOS_PLUGIN_PATH` is not used). Each toolkit must give at least one
    self-test (flow is an application without self-tests: it has
-   `base.flow`). The widgets and plotters tests need no display: CTest sets
-   `QT_QPA_PLATFORM=offscreen`. The soapy tests need no SDR hardware:
+   `base.flow`). The widgets and plotters tests need no display: the test
+   runner sets `QT_QPA_PLATFORM=offscreen` when it is not set. The soapy
+   tests need no SDR hardware:
    they use a SoapySDR test driver of soapy. The audio tests need no
    sound card: the test runner sets `POTHOS_AUDIO_BACKEND=null` (the null
    backend of miniaudio) when it is not set.
