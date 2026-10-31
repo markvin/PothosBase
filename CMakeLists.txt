@@ -15,14 +15,15 @@ option(POTHOS_BASE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors in all 
 option(POTHOS_BASE_BUILD_TESTS "Register the CTest tests of the aggregate build" ${PROJECT_IS_TOP_LEVEL})
 
 #the toolkits in build order (the core is always first)
-set(pothos_base_all_toolkits blocks comms widgets soapy plotters)
+set(pothos_base_all_toolkits blocks comms widgets soapy plotters flow)
 foreach(toolkit IN LISTS pothos_base_all_toolkits)
     string(TOUPPER ${toolkit} TOOLKIT)
     option(POTHOS_BASE_WITH_${TOOLKIT} "Build the ${toolkit} toolkit" ON)
 endforeach()
 
-#the comms, soapy and plotters self-tests use blocks of PothosBlocks (feeder, collector, copier)
-foreach(toolkit comms soapy plotters)
+#the comms, soapy and plotters self-tests use blocks of PothosBlocks (feeder, collector, copier),
+#and the flow smoke test checks /blocks/copier in the block cache
+foreach(toolkit comms soapy plotters flow)
     string(TOUPPER ${toolkit} TOOLKIT)
     if (POTHOS_BASE_BUILD_TESTS AND POTHOS_BASE_WITH_${TOOLKIT} AND NOT POTHOS_BASE_WITH_BLOCKS)
         message(FATAL_ERROR "PothosBase: the ${toolkit} tests need blocks. "
@@ -44,6 +45,9 @@ set(COMMS_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
 set(WIDGETS_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
 set(SOAPY_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
 set(PLOTTERS_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
+set(FLOW_WARNINGS_AS_ERRORS ${POTHOS_BASE_WARNINGS_AS_ERRORS})
+#the flow smoke test executable; base.flow runs it from the stage prefix
+set(FLOW_BUILD_SMOKE_TEST ${POTHOS_BASE_BUILD_TESTS})
 
 ########################################################################
 # pothos_base_add(<name>): add the repository <name> from the dir in
@@ -127,7 +131,15 @@ if (POTHOS_BASE_BUILD_TESTS)
             -P ${PROJECT_SOURCE_DIR}/cmake/PothosBaseStage.cmake)
     set_tests_properties(base.stage PROPERTIES FIXTURES_SETUP base_stage)
 
+    #flow is an application without self-tests: base.flow runs its smoke test
+    set(pothos_base_selftest_toolkits ${POTHOS_BASE_TOOLKITS})
+    list(REMOVE_ITEM pothos_base_selftest_toolkits flow)
     foreach(mode modules selftests)
+        if (mode STREQUAL "modules")
+            set(mode_toolkits ${POTHOS_BASE_TOOLKITS})
+        else ()
+            set(mode_toolkits ${pothos_base_selftest_toolkits})
+        endif ()
         add_test(NAME base.${mode}
             COMMAND ${CMAKE_COMMAND}
                 -DPREFIX=${stage_dir}
@@ -135,7 +147,7 @@ if (POTHOS_BASE_BUILD_TESTS)
                 -DBINDIR=${CMAKE_INSTALL_BINDIR}
                 -DLIBDIR=${CMAKE_INSTALL_LIBDIR}
                 -DCORE_DIR=${pothos_base_core_dir}
-                "-DTOOLKITS=${POTHOS_BASE_TOOLKITS}"
+                "-DTOOLKITS=${mode_toolkits}"
                 -DMODE=${mode}
                 -P ${PROJECT_SOURCE_DIR}/cmake/PothosBaseSelfTests.cmake)
         #the widgets and the plotters need no display: Qt uses the offscreen platform
@@ -146,6 +158,25 @@ if (POTHOS_BASE_BUILD_TESTS)
     set_tests_properties(base.selftests PROPERTIES
         DEPENDS base.modules
         TIMEOUT ${POTHOS_BASE_SELFTEST_TIMEOUT})
+
+    #the flow smoke test: the main window of flow against the stage prefix
+    if (POTHOS_BASE_WITH_FLOW)
+        add_test(NAME base.flow
+            COMMAND ${CMAKE_COMMAND}
+                -DPREFIX=${stage_dir}
+                -DTEST_HOME_DIR=${PROJECT_BINARY_DIR}/test-home-flow
+                -DBINDIR=${CMAKE_INSTALL_BINDIR}
+                -DLIBDIR=${CMAKE_INSTALL_LIBDIR}
+                -DSTAGE_BINDIR=${stage_dir}/${CMAKE_INSTALL_BINDIR}
+                -DSMOKE_TEST=$<TARGET_FILE:PothosFlowSmokeTest>
+                -P ${pothos_base_flow_dir}/cmake/PothosRunFlowSmokeTest.cmake)
+        #the main window of flow starts a server on the fixed locator port of Pothos
+        set_tests_properties(base.flow PROPERTIES
+            FIXTURES_REQUIRED base_stage
+            DEPENDS base.modules
+            RESOURCE_LOCK pothos_locator_port
+            TIMEOUT 240)
+    endif ()
 
     #the environment of the stage prefix for a developer shell (debugger)
     if (APPLE)

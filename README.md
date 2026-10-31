@@ -18,6 +18,7 @@ the toolkit tells. PothosBase does not replace that build.
 | `widgets/` | https://github.com/markvin/PothosWidgets | `pothos2` |
 | `soapy/` | https://github.com/markvin/PothosSoapy | `pothos2` |
 | `plotters/` | https://github.com/markvin/PothosPlotters | `pothos2` |
+| `flow/` | https://github.com/markvin/PothosFlow | `pothos2` |
 
 The submodule commits in `main` are a set that builds and passes the
 tests. CI checks this for each change.
@@ -35,7 +36,7 @@ submodule is missing.
 ## Dependencies
 
 The dependencies of all repositories (nlohmann_json, Asio, xsimd, Qt 6
-for widgets and plotters, SoapySDR for soapy, Qwt for plotters) come from
+for widgets, plotters and flow, SoapySDR for soapy, Qwt for plotters) come from
 `find_package`. Use one of
 these two methods:
 
@@ -53,8 +54,9 @@ these two methods:
 Qt 6 (6.5 or higher) is not a Conan package. Install it from the system
 packages or with the Qt installer. When Qt is not in a default location of
 the system, add its prefix to `CMAKE_PREFIX_PATH`. When Qt 6 is missing,
-configure stops with an error; `-DPOTHOS_BASE_WITH_WIDGETS=OFF` and
-`-DPOTHOS_BASE_WITH_PLOTTERS=OFF` build without widgets and plotters.
+configure stops with an error; `-DPOTHOS_BASE_WITH_WIDGETS=OFF`,
+`-DPOTHOS_BASE_WITH_PLOTTERS=OFF` and `-DPOTHOS_BASE_WITH_FLOW=OFF` build
+without widgets, plotters and flow.
 
 SoapySDR (0.8 or higher) is not a Conan package. Install it from the
 system packages, or build it from the source
@@ -79,11 +81,12 @@ cmake --build build
 Options:
 
 - `POTHOS_BASE_WITH_<TOOLKIT>` (default ON): build the toolkit, for
-  example `POTHOS_BASE_WITH_BLOCKS`. The comms, soapy and plotters tests
-  need blocks: with the tests on, one of them without blocks is a
+  example `POTHOS_BASE_WITH_BLOCKS`. The comms, soapy, plotters and flow
+  tests need blocks: with the tests on, one of them without blocks is a
   configure error. Plotters needs comms (the plotters use
   `/comms/wave_trigger`): plotters without comms is a configure error.
   Widgets needs Qt 6. Soapy needs SoapySDR. Plotters needs Qt 6 and Qwt.
+  Flow needs Qt 6.
 - `POTHOS_BASE_<NAME>_DIR`: the source directory of a repository
   (default: its submodule). Refer to "Local clones".
 - `POTHOS_BASE_WARNINGS_AS_ERRORS` (default OFF): treat compiler warnings
@@ -107,9 +110,15 @@ The tests:
 3. `base.selftests` runs all self-tests of the core and the toolkits from
    the stage prefix. All modules must come from the stage prefix
    (`POTHOS_PLUGIN_PATH` is not used). Each toolkit must give at least one
-   self-test. The widgets and plotters tests need no display: CTest sets
+   self-test (flow is an application without self-tests: it has
+   `base.flow`). The widgets and plotters tests need no display: CTest sets
    `QT_QPA_PLATFORM=offscreen`. The soapy tests need no SDR hardware:
    they use a SoapySDR test driver of soapy.
+4. `base.flow` runs the smoke test of flow (`PothosFlowSmokeTest`) from
+   the stage prefix: the main window, the block cache, Help → About, the
+   message window and the exit, with the Qt platform `offscreen`. The
+   main window starts a Pothos server on the fixed locator port, thus the
+   test has the CTest resource lock `pothos_locator_port`.
 
 To run one self-test, run this command after `base.stage`:
 
@@ -182,7 +191,8 @@ Add a toolkit after its port to the pothos2 core:
 3. Add its `warnings as errors` option to the forward list in
    `CMakeLists.txt`.
 4. Add its name to `-DTOOLKITS=` of the "Runner checks" step in
-   `.github/workflows/ci.yml`.
+   `.github/workflows/ci.yml` (not for an application without self-tests,
+   for example flow).
 5. Add its Conan requirements to `conanfile.txt` (the same versions).
 6. Run the build, `ctest` and `tests/configure_checks.cmake`.
 
