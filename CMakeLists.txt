@@ -77,14 +77,17 @@ function(pothos_base_add name)
         message(FATAL_ERROR "PothosBase: POTHOS_BASE_${NAME}_DIR=${dir} has no CMakeLists.txt.")
     endif ()
 
+    set(describe "")
+    if (GIT_FOUND)
+        execute_process(COMMAND ${GIT_EXECUTABLE} -C "${dir}" describe --always --dirty
+            OUTPUT_VARIABLE describe OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    endif ()
     if (NOT dir STREQUAL default_dir)
-        set(describe "")
-        if (GIT_FOUND)
-            execute_process(COMMAND ${GIT_EXECUTABLE} -C "${dir}" describe --always --dirty
-                OUTPUT_VARIABLE describe OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
-        endif ()
         message(STATUS "PothosBase: ${name} from the local clone ${dir} ${describe}")
         set(pothos_base_local_clones ${pothos_base_local_clones} ${name} PARENT_SCOPE)
+        set(pothos_base_${name}_source "local clone ${dir} ${describe}" PARENT_SCOPE)
+    else ()
+        set(pothos_base_${name}_source "submodule ${describe}" PARENT_SCOPE)
     endif ()
 
     #the resolved dir for the tests (an empty option means the submodule)
@@ -99,12 +102,29 @@ endfunction()
 ########################################################################
 pothos_base_add(core)
 
+#the features summary at the end: one entry for each repository
+include(FeatureSummary)
+set(pothos_base_description_core "the Pothos framework and PothosUtil")
+set(pothos_base_description_blocks "basic blocks: stream, file, network, event, testers")
+set(pothos_base_description_comms "DSP and communications blocks")
+set(pothos_base_description_widgets "Qt 6 control widgets")
+set(pothos_base_description_soapy "SDR device blocks on SoapySDR")
+set(pothos_base_description_plotters "Qt 6 and Qwt plotter widgets")
+set(pothos_base_description_flow "the graphical designer PothosFlow")
+set(pothos_base_description_audio "audio source and sink on miniaudio")
+add_feature_info(core ON "${pothos_base_description_core} (${pothos_base_core_source})")
+
 set(POTHOS_BASE_TOOLKITS)
 foreach(toolkit IN LISTS pothos_base_all_toolkits)
     string(TOUPPER ${toolkit} TOOLKIT)
     if (POTHOS_BASE_WITH_${TOOLKIT})
         pothos_base_add(${toolkit})
         list(APPEND POTHOS_BASE_TOOLKITS ${toolkit})
+        add_feature_info(${toolkit} POTHOS_BASE_WITH_${TOOLKIT}
+            "${pothos_base_description_${toolkit}} (${pothos_base_${toolkit}_source})")
+    else ()
+        add_feature_info(${toolkit} POTHOS_BASE_WITH_${TOOLKIT}
+            "${pothos_base_description_${toolkit}} (POTHOS_BASE_WITH_${TOOLKIT}=OFF)")
     endif ()
 endforeach()
 
@@ -188,4 +208,15 @@ if (POTHOS_BASE_BUILD_TESTS)
     endif ()
     configure_file(cmake/pothos-env.sh.in ${PROJECT_BINARY_DIR}/pothos-env.sh @ONLY)
     configure_file(cmake/pothos-env.ps1.in ${PROJECT_BINARY_DIR}/pothos-env.ps1 @ONLY)
+endif ()
+
+########################################################################
+# Features summary: the repositories that this build has, their source
+# (submodule or local clone, with git describe), and the main settings
+########################################################################
+if (PROJECT_IS_TOP_LEVEL)
+    feature_summary(WHAT ENABLED_FEATURES DISABLED_FEATURES
+        DESCRIPTION "PothosBase: repositories" QUIET_ON_EMPTY)
+    message(STATUS "PothosBase: build type ${CMAKE_BUILD_TYPE}, warnings as errors ${POTHOS_BASE_WARNINGS_AS_ERRORS}, "
+        "tests ${POTHOS_BASE_BUILD_TESTS}, install prefix ${CMAKE_INSTALL_PREFIX}")
 endif ()
